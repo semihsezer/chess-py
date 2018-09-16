@@ -1,4 +1,3 @@
-
 class Pos:
     def __init__(self, x=0, y=0):
         # This position x, y is optional and I will delete it later, the source of truth is the board for now
@@ -63,7 +62,7 @@ class Pawn(Piece):
         self.direction = direction
         self.startPos = Pos(x,y)
         
-    def canMove(self, p2):
+    def canMove(self, p2, pieceInP2=None):
         Piece.canMove(self, p2)
         if (abs(self.x - p2.x) != 0):
             print("{} can't go sideways".format(self._type))
@@ -71,6 +70,10 @@ class Pawn(Piece):
 
         if ((p2.y - self.y) / abs(self.y - p2.y) != self.direction):
             print("{} can only move in player's direction!".format(self._type))
+            return False
+
+        if pieceInP2 != None:
+            print("{} can't move on top of another piece!".format(self._type))
             return False
         
         # if pos==startPos, can move 2 or 1
@@ -94,8 +97,7 @@ class Pawn(Piece):
         return False
 
     def getTrajectoryTo(self, p2):
-        if self.canMove(p2) or self.canKill(p2):
-            
+        if self.canMove(p2) or self.canKill(p2):            
             if abs(self.y - p2.y) <= 1:
                 return [p2]
             else: # difference = 2

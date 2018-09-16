@@ -1,7 +1,7 @@
 import pytest
 from pprint import pprint
 
-from piece import *
+from chess.piece import *
 
 # returns true if two positions are the same
 def posEquals(p1, p2):
