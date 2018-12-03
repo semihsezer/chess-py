@@ -72,17 +72,18 @@ def test_getTrajectoryTo_MoveNegativeX():
     result = piece.getTrajectoryTo(Pos(2,1))
     assert all([ posEquals(p1,p2) for p1, p2 in zip(expected, result)])
 
-
 def test_getTrajectoryTo_MoveCrossDirection():
-    piece = Rook(0,3,4)
+    piece = Queen(0,3,4)
     expected = [Pos(4,5), Pos(5,6), Pos(6,7)]
-    result = piece.getTrajectoryTo(Pos(3,3))
+    result = piece.getTrajectoryTo(Pos(6,7))
     assert all([ posEquals(p1,p2) for p1, p2 in zip(expected, result)])
 
 def test_getTrajectoryTo_MoveCrossDirectionNegativeY():
     piece = Rook(0,5,8)
     expected = [Pos(4,7), Pos(3,6), Pos(2,5)]
     result = piece.getTrajectoryTo(Pos(2,5))
+    assert all([ posEquals(p1,p2) for p1, p2 in zip(expected, result)])
 
+# TODO: add more test cases
 
 

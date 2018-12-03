@@ -20,7 +20,7 @@ class Piece:
         self.hasMoved = False
 
     # returns true if the piece can physically move to pos
-    def canMove(self, p2):
+    def canMove(self, p2, pieceInP2=None):
         if (self.x==p2.x and self.y==p2.y):
             raise self.CantMoveToSamePositionException
     
@@ -35,18 +35,21 @@ class Piece:
 
     # returns sequence of positions to move to p2 including p2, it will return empty list if already at p2
     def getTrajectoryTo(self, p2):
-        self.canMove(p2)
-        #assert self.canMove(p2) # TODO: raise exception
         result = []
+        if not self.canMove(p2): 
+            return result
         
-        vector_x = 0 if (p2.x == self.x) else (p2.x - self.x) / (p2.x - self.x)
-        vector_y = 0 if (p2.y == self.y) else (p2.y - self.y) / (p2.y - self.y)
+        vector_x = 0 if (p2.x == self.x) else (p2.x - self.x) / abs(p2.x - self.x)
+        vector_y = 0 if (p2.y == self.y) else (p2.y - self.y) / abs(p2.y - self.y)
         # direction vector of 1 and 0's (x, y): 1,1 0,0 -1,0 0,-1 etc
         vector = Pos(vector_x, vector_y)
-        distance = max((p2.x - self.x), (p2.y - self.y))
+        distance = max(abs(p2.x - self.x), abs(p2.y - self.y))
         
         for i in range(1, distance+1):
-            result.append(Pos(self.x + i*vector.x, self.y + i*vector.y))
+            # append only existing positions on the chess board
+            pos = Pos(int(self.x + i*vector.x), int(self.y + i*vector.y))
+            if (pos.x <= 7 and pos.x >=0) and (pos.y <= 7 and pos.y >=0):
+                result.append(Pos(int(self.x + i*vector.x), int(self.y + i*vector.y)))
 
         return result
     
@@ -109,10 +112,10 @@ class Pawn(Piece):
 
     # returns list of positions this player can physically move to or kill to, independent of game logic
     def getAllPossibleMoves(self):
-        return [ Pos(self.x, self.y + direction),
-                 Pos(self.x, self.y + 2 * direction),
-                 Pos(self.x + 1, self.y + direction),
-                 Pos(self.x - 1, self.y + direction)
+        return [ Pos(self.x, self.y + self.direction),
+                 Pos(self.x, self.y + 2 * self.direction),
+                 Pos(self.x + 1, self.y + self.direction),
+                 Pos(self.x - 1, self.y + self.direction)
                 ]
 
 
@@ -120,7 +123,7 @@ class Rook(Piece):
     _type = "Rook"
     _symbol = "R"
     
-    def canMove(self, p2):
+    def canMove(self, p2, pieceInP2=None):
         Piece.canMove(self, p2)
         return self.x == p2.x or self.y == p2.y
 
@@ -141,7 +144,7 @@ class Knight(Piece):
     _type = "Knight"
     _symbol = "H"
     
-    def canMove(self, p2):
+    def canMove(self, p2, pieceInP2=None):
         Piece.canMove(self, p2)
         return abs(self.x - p2.x) <= 2 and abs(self.y - p2.y) <= 2 and ( abs(self.x - p2.x) + abs(self.y - p2.y) ) == 3
 
@@ -171,7 +174,7 @@ class Bishop(Piece):
     _type = "Bishop"
     _symbol = "B"
     
-    def canMove(self, p2):
+    def canMove(self, p2, pieceInP2=None):
         Piece.canMove(self, p2)
         return abs(self.x - p2.x) == abs(self.y - p2.y)
 
@@ -191,7 +194,7 @@ class Queen(Piece):
     _type = "Queen"
     _symbol = "Q"
     
-    def canMove(self, p2):
+    def canMove(self, p2, pieceInP2=None):
         Piece.canMove(self, p2)
         return (self.x == p2.x or self.y == p2.y) or ( abs(self.x - p2.x) == abs(self.y - p2.y) ) # rook or bishop
 
@@ -218,7 +221,7 @@ class King(Piece):
     _type = "King"
     _symbol = "K"
     
-    def canMove(self, p2):
+    def canMove(self, p2, pieceInP2=None):
         Piece.canMove(self, p2)
         return ( abs(self.x - p2.x) == 1 or abs(self.y - p2.y) == 1 ) and ( abs(self.x - p2.x) + abs(self.y - p2.y) <= 2 ) 
 

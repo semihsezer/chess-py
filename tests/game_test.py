@@ -76,7 +76,7 @@ def test_createGame():
 def test_makeMove_Opening_White_Pawn_e2_e3():
     game = Game()
 
-    game.move(game.players[1], Pos(4, 6), Pos(4, 5))
+    game.move(Player.WHITE, Pos(4, 6), Pos(4, 5))
 
     assert game.board[5][4] != None and game.board[5][4]._symbol == "P" and game.board[5][4].player_id == 1
     assert game.board[6][4] == None
@@ -86,7 +86,7 @@ def test_makeMove_Opening_White_Pawn_e2_e3():
 def test_makeMove_Opening_White_Pawn_e2_e4():
     game = Game()
 
-    game.move(game.players[1], Pos(4, 6), Pos(4, 4))
+    game.move(Player.WHITE, Pos(4, 6), Pos(4, 4))
 
     game.printBoard()
     assert game.board[4][4] != None and game.board[4][4]._symbol == "P" and game.board[4][4].player_id == 1
@@ -98,41 +98,41 @@ def test_makeMove_wrongPlayer():
     game = Game()
 
     with pytest.raises(OtherPlayersTurnException):
-        game.move(game.players[0], Pos(4, 1), Pos(4, 3)) # black tries to start the game
+        game.move(Player.BLACK, Pos(4, 1), Pos(4, 3)) # black tries to start the game
     
-    game.move(game.players[1], Pos(4, 6), Pos(4, 4)) # white's first move
+    game.move(Player.WHITE, Pos(4, 6), Pos(4, 4)) # white's first move
 
     with pytest.raises(OtherPlayersTurnException):
-        game.move(game.players[1], Pos(5, 6), Pos(5, 4)) # white's tries to play again
+        game.move(Player.WHITE, Pos(5, 6), Pos(5, 4)) # white's tries to play again
 
-    game.move(game.players[0], Pos(4, 1), Pos(4, 3)) # black's move
+    game.move(Player.BLACK, Pos(4, 1), Pos(4, 3)) # black's move
 
 def test_makeMove_gameOver():
     game = Game()
     game.gameOver = True
     
     with pytest.raises(GameOverException):
-        game.move(game.players[1], Pos(4, 6), Pos(4, 4)) # white move
+        game.move(Player.WHITE, Pos(4, 6), Pos(4, 4)) # white move
 
     with pytest.raises(GameOverException):
-        game.move(game.players[0], Pos(4, 1), Pos(4, 3)) # black move
+        game.move(Player.BLACK, Pos(4, 1), Pos(4, 3)) # black move
 
 def test_makeMove_moveFromEmptySpot():
     game = Game()
 
     with pytest.raises(NoPieceInPositionException):
-        game.move(game.players[1], Pos(4, 5), Pos(4, 4))
+        game.move(Player.WHITE, Pos(4, 5), Pos(4, 4))
 
 def test_makeMove_otherPlayersPiece():
     game = Game()
 
     with pytest.raises(OtherPlayersPieceException):
-        game.move(game.players[1], Pos(4, 1), Pos(4, 3)) # white tries to move black's pawn
+        game.move(Player.WHITE, Pos(4, 1), Pos(4, 3)) # white tries to move black's pawn
 
     game.currentPlayer = 0
 
     with pytest.raises(OtherPlayersPieceException):
-        game.move(game.players[0], Pos(5, 6), Pos(5, 4)) # black tries to move white's pawn
+        game.move(Player.BLACK, Pos(5, 6), Pos(5, 4)) # black tries to move white's pawn
 
 
 def test_makeMove():
@@ -163,7 +163,7 @@ def test_movePieceEnPassant():
     # TODO:
     return False
 
-def isPosUnderAttackBy():
+def test_isPosUnderAttackBy():
     # TODO:
     return False
 

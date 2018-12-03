@@ -3,6 +3,8 @@ import copy
 from chess.piece import *
 from chess.player import *
 
+import pdb
+
 print("Welcome to chess py!")
 
 # Board
@@ -46,6 +48,14 @@ class KingCantBeKilledException(Exception):
 class GameOverException(Exception):
     pass
 
+class PathNotClearException(Exception):
+    pass
+
+class CantKillOwnPieceException(Exception):
+    pass
+
+class MoveOutOfRangeException(Exception):
+    pass
 
 class Game:
     # board
@@ -122,9 +132,20 @@ class Game:
 
 
     # external method for players to submit a move
-    def move(self, player, p1, p2, board=None):
-        print("inside move")
-        self.makeMove(player._id, p1, p2, board)
+    # p1, p2 can be int or string representation
+    def move(self, player_id, p1, p2, board=None):
+        print("Making move {} {} for {}: ".format(p1, p2, self.players[player_id].name))
+        # assume if p1 is string p2 is also string (p1="e2", p2="e4")
+        if type(p1) is str:
+            p1 = self.mapPos(p1)
+            p2 = self.mapPos(p2)
+
+        try:
+            self.makeMove(player_id, p1, p2, board)
+            print("Move {} {} for {} completed!".format(p1, p2, self.players[player_id].name))
+        except Exception as e:
+            print("Move {} {} for {} is not valid! {}".format(p1, p2, self.players[player_id].name, str(e)))
+            raise e
 
         if self.isGameOver():
             print("Checkmate! {} wins!".format(self.getOtherPlayer().name))
@@ -144,9 +165,8 @@ class Game:
         if self.currentPlayer != player._id: raise OtherPlayersTurnException 
 
         try:
-            if self.isMoveValid(p1, p2):
-                
-                # TODO: prepare and propose the board
+            isValid = self.isMoveValid(p1, p2)
+            if isValid:
                 newGame = copy.deepcopy(self)
                 newGame.movePiece(p1, p2)
 
@@ -191,62 +211,58 @@ class Game:
     # For the concern of this function, a king can be killed
     def isMoveValid(self, p1, p2, board=None, player_id=None):
         # TODO: let's move board to another object because we are passing current player and board to every method
-        print("inside isMoveValid")
-        print("checking if ({},{}) can move to ({},{})".format(p1.x, p1.y, p2.x, p2.y))
-        
         if board==None: board = self.board
         if player_id==None: player_id = self.currentPlayer
 
         if board[p1.y][p1.x] == None: raise NoPieceInPositionException 
         p = board[p1.y][p1.x]
+
+        print("isMoveValid: checking if {} ({},{}) can move to ({},{})".format(p._type, p1.x, p1.y, p2.x, p2.y))
             
         if player_id != p.player_id: raise OtherPlayersPieceException
-
-        # same spot TODO: this is not needed, p.canMove() throws that exception
-        if (p1.x == p2.x and p1.y == p2.y):
-            return False
 
         # check for board range
         if (p1.x < 0 or p1.x > 7 or p1.y < 0 or p1.y > 7 or p2.x < 0 or p2.x > 7 or p2.y < 0 or p2.y > 7):
             print("Move out of range: from ({},{}) to ({},{})".format(p1.x, p1.y, p2.x, p2.y))
-            return False
+            return MoveOutOfRangeException
 
         # make sure p2 doesn't have the player's piece
         if board[p2.y][p2.x] != None and board[p2.y][p2.x].player_id == player_id:
             print("ERROR: Can't move on top of your own piece in ({},{}). There is a {} there!".format(p2.x, p2.y, board[p2.y][p2.x]._type))
-            return False
+            return CantKillOwnPieceException
         
         # doesn't check if there is a check at the end
         if self.isValidRokMove(p1, p2):
-            raise self.ValidRokMoveException
+            raise ValidRokMoveException
 
         # doesn't check if there is a check at the end
         elif self.isValidEnPassantMove(p1, p2):
-            raise self.ValidEnPassantMoveException
+            raise ValidEnPassantMoveException
 
         pieceInP2 = board[p2.y][p2.x]
-        if not p.canMove(p2, pieceInP2):
+        if not p.canMove(p2, pieceInP2=pieceInP2):
             # if a king tries to kill a protected piece it is a valid move, but the makeMove will reject it later
-
             if p.canKill(p2):
                 if board[p2.y][p2.x] == None:
                     print("ERROR: {} {} can only kill to ({},{}) but the spot is empty!".format(p._type, p._symbol, p2.x, p2.y))
-                    return False
+                    raise Piece.InvalidMoveException
 
             else: # can't kill
                 print("ERROR: {} {} can't move or kill to ({},{})!".format(p._type, p._symbol, p2.x, p2.y))
-                return False
-
+                raise Piece.InvalidMoveException
+        
         # check whether path is clear
         trajectory = p.getTrajectoryTo(p2)
-        for i in range(0, len(trajectory) - 1):
-            pos = trajectory[i]
-            if board[pos.y][pos.x] != None:
-                print("ERROR: Path from ({},{}) to ({},{}) is not clear for {}! There is a {} at ({},{})".format(p1.x, p1.y, p2.x, p2.y, p._type, board[pos.y][pos.x]._type, pos.x, pos.y))
-                return False
-
+        if len(trajectory) == 0: # no path possible
+            raise Piece.InvalidMoveException
+        else:
+            for i in range(0, len(trajectory) - 1):
+                pos = trajectory[i]
+                
+                if board[pos.y][pos.x] != None:
+                    print("ERROR: Path from ({},{}) to ({},{}) is not clear for {}! There is a {} at ({},{})".format(p1.x, p1.y, p2.x, p2.y, p._type, board[pos.y][pos.x]._type, pos.x, pos.y))
+                    raise PathNotClearException
         # TODO: check for game rules, what else is there?
-
         return True
 
     # isMoveAllowed checks whether a move is allowed in game logic (e.g. attempting moving to move a pawn when your check is under attack)
@@ -321,7 +337,7 @@ class Game:
     # moves piece from p1 to p2, if there is a piece in p2 it will be killed
     # assumes all validity checks have been done except KingCantBeKilledException
     def movePiece(self, p1, p2):
-        print("inside movePiece ({}{}) to ({},{})".format(p1.x, p1.y, p2.x, p2.y))
+        print("inside movePiece ({},{}) to ({},{})".format(p1.x, p1.y, p2.x, p2.y))
         piece = self.board[p1.y][p1.x]
 
         # if there is a piece there, kill it
@@ -472,7 +488,6 @@ class Game:
 
     # returns pieces on the board with their positions that fit the filters specified in opts
     def getPieces(self, opts):
-        print("inside getPieces")
         pieces = [] # {"pos": Pos(x,y), "piece": piece}
 
         for i in range(0,8):
@@ -486,6 +501,8 @@ class Game:
 
         return pieces
     
+    
+
     # ----- The methods below are only for setting up the board, not connected to the game -------
     # takes a list of pieces with positions and sets the board to that
     def insertPieces(self, pieces):
@@ -510,11 +527,22 @@ class Game:
                 if obj == None:
                     new_list[i][j] = "0"
                 else:
-                    new_list[i][j] = obj._symbol
+                    new_list[i][j] = obj._symbol if obj.player_id == Player.WHITE else obj._symbol.lower()
 
         pprint(new_list)
 
-# --------------------------------------------------------------------------------------------------
+    # returns piece at pos (Pos or string in UCI format)
+    def getPieceAt(self, pos):
+        if type(pos) is str:
+            pos = self.mapPos(pos)
+        return self.board[pos.y][pos.x]
 
-game = Game()
-game.printBoard()
+    # maps default chess positions (strings) to game array positions
+    # posString: e.g. e1 (string of char plus letter)
+    # returns Pos
+    @staticmethod
+    def mapPos(posString):
+        posMap = {"a": 0, "b": 1, "c": 2, "d": 3, "e": 4, "f": 5, "g":6, "h":7}
+        return Pos(posMap[posString[0]], 8 - int(posString[1]))
+
+# --------------------------------------------------------------------------------------------------
